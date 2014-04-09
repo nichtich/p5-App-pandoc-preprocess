@@ -14,7 +14,7 @@ use File::Path 'make_path';
 
 # configuration set as --key value at command line or as key=value from file
 our %config;
-our ($tmp, $log);
+our ($tmp, $log, $svg);
 
 # load configuration from file in current directory if given
 {
@@ -37,7 +37,7 @@ while (@ARGV) {
 # register known options as global variables
 {
     no strict 'refs';
-    for my $name (qw(tmp log)) {
+    for my $name (qw(tmp log svg)) {
         $$name = $config{$name} if defined $config{$name};
     }
 }
@@ -132,6 +132,9 @@ SUBS: {
            . " $tmpdir/image-$fileno.png"
            . " 2>&1 >>$logdir/mogrify.log";
     } else {
+      if ($svg) {
+          return; # TODO: scale SVG
+      }
       my $scale = exists $attrs{scale} ? do { $_ = $attrs{scale}; s/%//; $_/100 }: 1.0;
       $cmd = "rsvg-convert"
            . " --zoom $scale"
@@ -155,11 +158,12 @@ SUBS: {
        exit 0;
     }
 
+    my $ext = $svg ? 'svg' : 'png';
     $format =
       "![" . (exists $attrs{title} ? $attrs{title} : '' )
            . (exists $attrs{label} ? "\\label{$attrs{label}}" : '' ).
       "]"  .
-      "($tmpdir/image-$fileno.png)" .
+      "($tmpdir/image-$fileno.$ext)" .
       (exists $attrs{inline} ? '\\ ' : '')
     ;
     say STDOUT $format;
